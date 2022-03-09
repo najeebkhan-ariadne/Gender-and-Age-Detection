@@ -3,6 +3,34 @@
 import cv2
 import math
 import argparse
+import numpy as np
+import pyrealsense2 as rs
+
+def init_realsense():
+    rs_pipeline = rs.pipeline()
+    rs_config = rs.config()
+    rs_config.enable_stream(rs.stream.color, rs.format.bgr8, 30)
+    rs_pipeline.start(rs_config)
+    return rs_pipeline
+
+def get_image(color):
+    img = np.asanyarray(color.get_data())
+    # img = cv2.resize(img, (240, 240))
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.rotate(img, cv2.ROTATE_180)
+    return img
+
+def get_frame(rs_pipeline):
+    # Get frame from pipeline
+    frames = rs_pipeline.wait_for_frames()
+    
+    # Get depth image
+    color = frames.get_color_frame()
+    if not color: 
+        return
+    
+    img = get_image(color)
+    return img
 
 def highlightFace(net, frame, conf_threshold=0.7):
     frameOpencvDnn=frame.copy()
@@ -45,16 +73,23 @@ faceNet=cv2.dnn.readNet(faceModel,faceProto)
 ageNet=cv2.dnn.readNet(ageModel,ageProto)
 genderNet=cv2.dnn.readNet(genderModel,genderProto)
 
-video=cv2.VideoCapture(args.image if args.image else 0)
+# video=cv2.VideoCapture(args.image if args.image else 0)
 padding=20
-while cv2.waitKey(1)<0 :
-    hasFrame,frame=video.read()
-    if not hasFrame:
+
+rs_pipeline = init_realsense()
+
+while cv2.waitKey(1) < 0 :
+    # hasFrame,frame=video.read()
+    img = get_frame(rs_pipeline)
+    
+    if img is None:
         cv2.waitKey()
         break
     
-    resultImg,faceBoxes=highlightFace(faceNet,frame)
+    resultImg, faceBoxes = highlightFace(faceNet,img)
+    
     if not faceBoxes:
+        cv2.imshow("Detecting age and gender", resultImg)
         print("No face detected")
 
     for faceBox in faceBoxes:
