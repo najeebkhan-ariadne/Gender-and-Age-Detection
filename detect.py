@@ -34,7 +34,7 @@ def get_frame(rs_pipeline):
     return img
 
 def highlightPerson(hog, frame):
-    boxes, weights = hog.detectMultiScale(frame, winStride=(8,8))
+    boxes, _ = hog.detectMultiScale(frame, winStride=(8,8))
     boxes = np.array([[x, y, x + w, y + h] for (x, y, w, h) in boxes])
 
     for (xA, yA, xB, yB) in boxes:
@@ -49,8 +49,8 @@ parser.add_argument('--image')
 
 args=parser.parse_args()
 
-faceProto="opencv_face_detector.pbtxt"
-faceModel="opencv_face_detector_uint8.pb"
+# faceProto="opencv_face_detector.pbtxt"
+# faceModel="opencv_face_detector_uint8.pb"
 ageProto="age_deploy.prototxt"
 ageModel="age_net.caffemodel"
 genderProto="gender_deploy.prototxt"
@@ -68,38 +68,22 @@ genderNet=cv2.dnn.readNet(genderModel,genderProto)
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
-# video=cv2.VideoCapture(args.image if args.image else 0)
 padding=20
 
-# rs_pipeline = init_realsense()
+rs_pipeline = init_realsense()
 
-cap = cv2.VideoCapture('stock-footage.webm')
-frame_width = int(cap.get(3))
-frame_height = int(cap.get(4))
+while cv2.waitKey(1) < 0 :
 
-out = cv2.VideoWriter('result/output.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
-
-count = 0
-# while cv2.waitKey(1) < 0 :
-while cap.isOpened():
-    # hasFrame,frame=video.read()
-    # img = get_frame(rs_pipeline)
-    ret, frame = cap.read()
-
-    if not ret:
-        cap.release()
-        out.release()
-        break
+    frame = get_frame(rs_pipeline)
 
     if frame is None:
-        cv2.waitKey()
-        break
-    
+        print("No frame received...")
+        continue
+     
     resultImg, personBoxes = highlightPerson(hog, frame)
     
-    if personBoxes is None:
+    if not len(personBoxes):
         cv2.imshow("Detecting age and gender", resultImg)
-        print("No face detected")
 
     for faceBox in personBoxes:
         face=frame[max(0,faceBox[1]-padding):
@@ -119,6 +103,3 @@ while cap.isOpened():
 
         cv2.putText(resultImg, f'{gender}, {age}', (faceBox[0], faceBox[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,255), 2, cv2.LINE_AA)
         cv2.imshow("Detecting age and gender", resultImg)
-        cv2.imwrite(f"/home/ikea_ottawa_1/Gender-and-Age-Detection/result/test_{count}.jpg", resultImg)
-        out.write(resultImg)
-        count += 1
