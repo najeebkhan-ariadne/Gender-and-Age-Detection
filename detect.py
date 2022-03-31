@@ -68,7 +68,7 @@ genderNet=cv2.dnn.readNet(genderModel,genderProto)
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
-out = cv2.VideoWriter('result/output.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
+# out = cv2.VideoWriter('result/output.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
 
 padding=20
 
@@ -105,8 +105,8 @@ try:
             print(f'Age: {age[1:-1]} years')
 
             cv2.putText(resultImg, f'{gender}, {age}', (faceBox[0], faceBox[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,255), 2, cv2.LINE_AA)
-            out.write(resultImg)
+            # out.write(resultImg)
             cv2.imshow("Detecting age and gender", resultImg)
 except KeyboardInterrupt:
     print("User interrupted. Closing stream...")
-    out.release()
+    # out.release()
