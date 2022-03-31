@@ -17,7 +17,7 @@ def get_image(color):
     img = np.asanyarray(color.get_data())
     # img = cv2.resize(img, (240, 240))
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = cv2.rotate(img, cv2.ROTATE_180)
+    # img = cv2.rotate(img, cv2.ROTATE_180)
     return img
 
 def get_frame(rs_pipeline):
@@ -80,13 +80,13 @@ rs_pipeline = init_realsense()
 
 while cv2.waitKey(1) < 0 :
     # hasFrame,frame=video.read()
-    img = get_frame(rs_pipeline)
+    frame = get_frame(rs_pipeline)
     
-    if img is None:
+    if frame is None:
         cv2.waitKey()
         break
     
-    resultImg, faceBoxes = highlightFace(faceNet,img)
+    resultImg, faceBoxes = highlightFace(faceNet,frame)
     
     if not faceBoxes:
         cv2.imshow("Detecting age and gender", resultImg)
