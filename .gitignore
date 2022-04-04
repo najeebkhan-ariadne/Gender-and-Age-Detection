@@ -2,4 +2,8 @@ result
 result.zip
 *.webm
 *.jpg
-.vscode/
+.vscode
+*.tar.gz
+ssd_mo*/
+face_detector
+*.png
