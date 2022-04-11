@@ -13,7 +13,7 @@ personProto = "ssd_mobilenet_v1_coco_11_06_2017/ssd_mobilenet_v1_coco.pbtxt"
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True, parents=True)
 SAVE_FLAG = True
-WINNOW_THRESHOLD = None
+AREA_THRESHOLD = None
 
 def init_realsense():
     rs_pipeline = rs.pipeline()
@@ -95,26 +95,24 @@ def highlightFace(frame, net, conf_threshold=0.7):
     
     return frameCopy, faceBoxes
 
-def winnow_images():
-    images = list(DATA_DIR.glob("*.png"))
+def winnow_images(personNet):
+    image_list = list(DATA_DIR.glob("*.png"))
     to_delete = set()
 
-    for i in range(len(images) - 1):
-        img1 = cv2.imread(images[i].as_posix())
-        for j in range(i, len(images)):
-            if images[j] not in to_delete:
-                img2 = cv2.imread(images[j].as_posix())
+    for fname in image_list:
+        img = cv2.imread(fname)
+        img, personBoxes = highlightPerson(img, personNet, min_area_k=AREA_THRESHOLD)
 
-                score = ssim(img1, img2)
-                if score > WINNOW_THRESHOLD:
-                    to_delete.add(images[j])
+        if not len(personBoxes):
+            print(f"{fname}: TO BE DELETED")
+            to_delete.add(fname)
     
-    MOVE_DIR = DATA_DIR.parent / "copies"
-    for fname in to_delete:
-        shutil.move(fname.as_posix(), MOVE_DIR / fname.name)
+    # MOVE_DIR = DATA_DIR.parent / "copies"
+    # for fname in to_delete:
+    #     shutil.move(fname.as_posix(), MOVE_DIR / fname.name)
 
     return
-    
+
 def main():
     personNet = cv2.dnn.readNetFromTensorflow(personModel, personProto)
     faceNet = MTCNN()
@@ -150,4 +148,5 @@ def main():
         print("User interrupted. Closing stream...")
     
 if __name__ == "__main__":
-    main()
+    # main()
+    winnow_images()
