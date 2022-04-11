@@ -5,7 +5,7 @@ import shutil
 import numpy as np
 from pathlib import Path
 import pyrealsense2 as rs
-from mtcnn_cv2 import MTCNN
+from tqdm import tqdm
 from skimage.metrics import structural_similarity as ssim
 
 personModel = "ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb"
@@ -13,7 +13,7 @@ personProto = "ssd_mobilenet_v1_coco_11_06_2017/ssd_mobilenet_v1_coco.pbtxt"
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True, parents=True)
 SAVE_FLAG = True
-AREA_THRESHOLD = None
+AREA_THRESHOLD = 0.1
 
 def init_realsense():
     rs_pipeline = rs.pipeline()
@@ -63,7 +63,7 @@ def highlightPerson(frame, personNet, min_area_k = 0.001, thr=0.3):
         
         if cls != 1 or score < thr or area_k < min_area_k:
             continue
-
+        
         box = d[3:7] * r
         box[2] -= box[0]
         box[3] -= box[1]
@@ -95,27 +95,28 @@ def highlightFace(frame, net, conf_threshold=0.7):
     
     return frameCopy, faceBoxes
 
-def winnow_images(personNet):
+def winnow_images():
+    personNet = cv2.dnn.readNetFromTensorflow(personModel, personProto)
     image_list = list(DATA_DIR.glob("*.png"))
     to_delete = set()
 
-    for fname in image_list:
-        img = cv2.imread(fname)
+    for fname in tqdm(image_list):
+        img = cv2.imread(fname.as_posix())
         img, personBoxes = highlightPerson(img, personNet, min_area_k=AREA_THRESHOLD)
 
         if not len(personBoxes):
-            print(f"{fname}: TO BE DELETED")
             to_delete.add(fname)
     
-    # MOVE_DIR = DATA_DIR.parent / "copies"
-    # for fname in to_delete:
-    #     shutil.move(fname.as_posix(), MOVE_DIR / fname.name)
+    print(f"Number of images to be deleted: {len(to_delete)}")
+
+    MOVE_DIR = DATA_DIR.parent / "data_bad"
+    for fname in to_delete:
+        shutil.move(fname.as_posix(), MOVE_DIR / fname.name)
 
     return
 
 def main():
     personNet = cv2.dnn.readNetFromTensorflow(personModel, personProto)
-    faceNet = MTCNN()
     rs_pipeline = init_realsense()
     last_save = time.time()
     frame_count = 0
@@ -129,7 +130,6 @@ def main():
                 continue
             
             resultImg, personBoxes = highlightPerson(frame, personNet)
-            # resultImg, personBoxes   = highlightFace(frame, faceNet)
             
             cv2.putText(resultImg, f'{len(personBoxes)} people found', \
                 (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,255), 2, cv2.LINE_AA)
